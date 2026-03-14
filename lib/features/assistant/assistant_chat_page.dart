@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/ui/glass.dart';
 import '../../core/ui/primary_button.dart';
@@ -17,11 +17,12 @@ class _AssistantChatPageState extends ConsumerState<AssistantChatPage> {
   final input = TextEditingController();
   final List<Map<String, String>> messages = [];
   bool loading = false;
+
   final quickPrompts = const [
-    'Suggest a weekend trip',
-    'Recommend events near me',
-    'Build a 3-day itinerary',
-    'Find cheap transport options',
+    'Suggest a weekend in Marrakech',
+    'Build a 3-day Fes itinerary',
+    'Recommend cheap transport options',
+    'Plan a desert trip from Casablanca',
   ];
 
   Future<void> sendMessage(String text) async {
@@ -49,13 +50,54 @@ class _AssistantChatPageState extends ConsumerState<AssistantChatPage> {
   }
 
   @override
+  void dispose() {
+    input.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Assistant')),
+      appBar: AppBar(title: const Text('AI Travel Assistant')),
       body: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
+            GlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Your Morocco trip copilot',
+                    style: t.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Ask for routes, budgets, places to stay, events, and day-by-day itineraries.',
+                    style: t.bodyMedium?.copyWith(
+                      color: scheme.onSurface.withOpacity(0.68),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: quickPrompts
+                        .map(
+                          (prompt) => ActionChip(
+                            label: Text(prompt),
+                            onPressed: loading ? null : () => sendMessage(prompt),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
             Expanded(
               child: ListView.separated(
                 itemCount: messages.length + (loading ? 1 : 0),
@@ -64,27 +106,31 @@ class _AssistantChatPageState extends ConsumerState<AssistantChatPage> {
                   if (loading && i == messages.length) {
                     return const Align(
                       alignment: Alignment.centerLeft,
-                      child: GlassCard(child: Text('Assistant is typing...')),
+                      child: _TypingCard(),
                     );
                   }
-                  final m = messages[i];
-                  final isUser = m['role'] == 'user';
+                  final message = messages[i];
+                  final isUser = message['role'] == 'user';
                   return Align(
                     alignment:
                         isUser ? Alignment.centerRight : Alignment.centerLeft,
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 320),
+                      constraints: const BoxConstraints(maxWidth: 340),
                       child: GlassCard(
+                        padding: const EdgeInsets.all(16),
                         child: isUser
                             ? Text(
-                                m['text'] ?? '',
-                                style: const TextStyle(fontWeight: FontWeight.w800),
+                                message['text'] ?? '',
+                                style: const TextStyle(fontWeight: FontWeight.w700),
                               )
                             : MarkdownBody(
-                                data: m['text'] ?? '',
+                                data: message['text'] ?? '',
                                 selectable: true,
                                 styleSheet: MarkdownStyleSheet(
-                                  p: const TextStyle(fontWeight: FontWeight.w700),
+                                  p: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.45,
+                                  ),
                                 ),
                               ),
                       ),
@@ -97,31 +143,18 @@ class _AssistantChatPageState extends ConsumerState<AssistantChatPage> {
             GlassCard(
               child: Column(
                 children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Wrap(
-                      spacing: 8,
-                      children: quickPrompts
-                          .map(
-                            (p) => ActionChip(
-                              label: Text(p),
-                              onPressed: loading ? null : () => sendMessage(p),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
                   TextField(
                     controller: input,
                     minLines: 1,
                     maxLines: 4,
-                    decoration:
-                        const InputDecoration(labelText: 'Ask anything...'),
+                    decoration: const InputDecoration(
+                      labelText: 'Ask anything about your trip',
+                      prefixIcon: Icon(Icons.chat_bubble_outline_rounded),
+                    ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   PrimaryButton(
-                    label: 'Send',
+                    label: 'Send message',
                     icon: Icons.send_rounded,
                     loading: loading,
                     onTap: send,
@@ -131,6 +164,23 @@ class _AssistantChatPageState extends ConsumerState<AssistantChatPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _TypingCard extends StatelessWidget {
+  const _TypingCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassCard(
+      child: Text(
+        'Assistant is thinking...',
+        style: Theme.of(context)
+            .textTheme
+            .bodyMedium
+            ?.copyWith(fontWeight: FontWeight.w700),
       ),
     );
   }

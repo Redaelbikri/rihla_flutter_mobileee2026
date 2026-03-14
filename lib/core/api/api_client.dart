@@ -44,7 +44,7 @@ class ApiClient {
         final path = error.requestOptions.path.toString();
         final isAuthEndpoint = path.startsWith('/api/auth/');
 
-        if ((status == 401 || status == 403) && hadAuthHeader && !isAuthEndpoint) {
+        if (status == 401 && hadAuthHeader && !isAuthEndpoint) {
           await authSession.logout();
         }
         handler.next(error);

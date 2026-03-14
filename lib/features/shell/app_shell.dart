@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../core/ui/gradients.dart';
 import '../explore/explore_page.dart';
 import '../home/home_page.dart';
@@ -32,7 +33,7 @@ class _AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
-    idx = widget.initialIndex.clamp(0, pages.length - 1);
+    idx = widget.initialIndex.clamp(0, pages.length - 1).toInt();
   }
 
   @override
@@ -40,21 +41,32 @@ class _AppShellState extends State<AppShell> {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      body: Container(
+      body: DecoratedBox(
         decoration: const BoxDecoration(gradient: AppGradients.hero),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
             child: Stack(
               children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 350),
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeInCubic,
-                  child: pages[idx]
-                      .animate(key: ValueKey(idx))
-                      .fadeIn(duration: 250.ms)
-                      .slideX(begin: 0.04, end: 0),
+                Positioned.fill(
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 84),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.24),
+                      borderRadius: BorderRadius.circular(34),
+                    ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 360),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    child: pages[idx]
+                        .animate(key: ValueKey(idx))
+                        .fadeIn(duration: 260.ms)
+                        .slideX(begin: 0.04, end: 0),
+                  ),
                 ),
                 Positioned(
                   left: 0,
@@ -62,7 +74,7 @@ class _AppShellState extends State<AppShell> {
                   bottom: 0,
                   child: _PremiumNavBar(
                     index: idx,
-                    onChanged: (v) => setState(() => idx = v),
+                    onChanged: (value) => setState(() => idx = value),
                     scheme: scheme,
                   ),
                 ),
@@ -92,47 +104,55 @@ class _PremiumNavBar extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.78),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: const Color(0x11FFFFFF)),
+        gradient: AppGradients.glass,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.white.withOpacity(0.6)),
         boxShadow: const [
           BoxShadow(
-              blurRadius: 30, offset: Offset(0, 18), color: Color(0x22000000)),
+            blurRadius: 24,
+            offset: Offset(0, 16),
+            color: Color(0x26000000),
+          ),
         ],
       ),
       child: Row(
         children: [
           _NavItem(
-              icon: Icons.home_rounded,
-              label: 'Home',
-              active: index == 0,
-              onTap: () => onChanged(0),
-              scheme: scheme),
+            icon: Icons.home_rounded,
+            label: 'Home',
+            active: index == 0,
+            onTap: () => onChanged(0),
+            scheme: scheme,
+          ),
           _NavItem(
-              icon: Icons.explore_rounded,
-              label: 'Explore',
-              active: index == 1,
-              onTap: () => onChanged(1),
-              scheme: scheme),
+            icon: Icons.explore_rounded,
+            label: 'Explore',
+            active: index == 1,
+            onTap: () => onChanged(1),
+            scheme: scheme,
+          ),
           _NavItem(
-              icon: Icons.receipt_long_rounded,
-              label: 'Reservations',
-              active: index == 2,
-              onTap: () => onChanged(2),
-              scheme: scheme),
+            icon: Icons.receipt_long_rounded,
+            label: 'Trips',
+            active: index == 2,
+            onTap: () => onChanged(2),
+            scheme: scheme,
+          ),
           _NavItem(
-              icon: Icons.notifications_active_rounded,
-              label: 'Notifications',
-              badge: unread > 0 ? unread : null,
-              active: index == 3,
-              onTap: () => onChanged(3),
-              scheme: scheme),
+            icon: Icons.notifications_active_rounded,
+            label: 'Alerts',
+            badge: unread > 0 ? unread : null,
+            active: index == 3,
+            onTap: () => onChanged(3),
+            scheme: scheme,
+          ),
           _NavItem(
-              icon: Icons.person_rounded,
-              label: 'Profile',
-              active: index == 4,
-              onTap: () => onChanged(4),
-              scheme: scheme),
+            icon: Icons.person_rounded,
+            label: 'Profile',
+            active: index == 4,
+            onTap: () => onChanged(4),
+            scheme: scheme,
+          ),
         ],
       ),
     );
@@ -158,7 +178,7 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = active ? scheme.primary : const Color(0xFF5D6B7C);
+    final color = active ? scheme.primary : const Color(0xFF6B625C);
     return Expanded(
       child: InkWell(
         onTap: onTap,
@@ -167,27 +187,28 @@ class _NavItem extends StatelessWidget {
           duration: const Duration(milliseconds: 220),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color:
-                active ? scheme.primary.withOpacity(0.12) : Colors.transparent,
+            color: active ? scheme.primary.withOpacity(0.14) : Colors.transparent,
             borderRadius: BorderRadius.circular(18),
           ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
               Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  Icon(icon, color: c),
+                  Icon(icon, color: color),
                   if (badge != null)
                     Positioned(
-                      right: -6,
+                      right: -8,
                       top: -6,
                       child: Container(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                          color: scheme.error,
-                          borderRadius: BorderRadius.circular(10),
+                          color: scheme.tertiary,
+                          borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
                           badge! > 99 ? '99+' : badge!.toString(),
@@ -201,11 +222,16 @@ class _NavItem extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 3),
-              Text(label,
-                  style: TextStyle(
-                      color: c, fontWeight: FontWeight.w800, fontSize: 11)),
-          ],
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 11,
+                ),
+              ),
+            ],
           ),
         ),
       ),

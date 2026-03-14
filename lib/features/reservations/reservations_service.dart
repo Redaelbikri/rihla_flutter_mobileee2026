@@ -29,7 +29,7 @@ class ReservationsService {
     required int quantity,
   }) async {
     return _create({
-      'event': {'id': eventId, 'quantity': quantity}
+      'event': {'id': eventId, 'quantity': quantity},
     });
   }
 
@@ -38,7 +38,7 @@ class ReservationsService {
     required int quantity,
   }) async {
     return _create({
-      'hebergement': {'id': hebergementId, 'quantity': quantity}
+      'hebergement': {'id': hebergementId, 'quantity': quantity},
     });
   }
 
@@ -47,7 +47,7 @@ class ReservationsService {
     required int quantity,
   }) async {
     return _create({
-      'transport': {'id': tripId, 'quantity': quantity}
+      'transport': {'id': tripId, 'quantity': quantity},
     });
   }
 
@@ -65,6 +65,28 @@ class ReservationsService {
   Future<void> cancel(String reservationId) async {
     try {
       await _dio.put('/api/reservations/$reservationId/cancel');
+    } on DioException catch (e) {
+      throw dioToApiError(e);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getTickets(String reservationId) async {
+    try {
+      final r = await _dio.get('/api/reservations/$reservationId/tickets');
+      final data = r.data;
+      final list = (data is List)
+          ? data
+          : (data is Map && data['content'] is List ? data['content'] : []);
+      return List<Map<String, dynamic>>.from(list);
+    } on DioException catch (e) {
+      throw dioToApiError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getTicket(String ticketId) async {
+    try {
+      final r = await _dio.get('/api/reservations/tickets/$ticketId');
+      return Map<String, dynamic>.from((r.data as Map?) ?? {});
     } on DioException catch (e) {
       throw dioToApiError(e);
     }

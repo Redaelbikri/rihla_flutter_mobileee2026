@@ -60,6 +60,28 @@ class PaymentsService {
       throw dioToApiError(e);
     }
   }
+
+  Future<List<Map<String, dynamic>>> myInvoices() async {
+    try {
+      final r = await _dio.get('/api/payments/invoices/me');
+      final data = r.data;
+      final list = (data is List)
+          ? data
+          : (data is Map && data['content'] is List ? data['content'] : []);
+      return List<Map<String, dynamic>>.from(list);
+    } on DioException catch (e) {
+      throw dioToApiError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getInvoice(String id) async {
+    try {
+      final r = await _dio.get('/api/payments/invoices/$id');
+      return Map<String, dynamic>.from((r.data as Map?) ?? {});
+    } on DioException catch (e) {
+      throw dioToApiError(e);
+    }
+  }
 }
 
 final paymentsServiceProvider = Provider<PaymentsService>((ref) {

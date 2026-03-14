@@ -7,8 +7,10 @@ import 'core/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Stripe.publishableKey = AppConfig.stripePublishableKey;
-  await Stripe.instance.applySettings();
+  if (AppConfig.stripePublishableKey.isNotEmpty) {
+    Stripe.publishableKey = AppConfig.stripePublishableKey;
+    await Stripe.instance.applySettings();
+  }
 
   runApp(const ProviderScope(child: RihlaApp()));
 }

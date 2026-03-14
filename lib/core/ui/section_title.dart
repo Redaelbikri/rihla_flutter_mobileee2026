@@ -13,14 +13,21 @@ class SectionTitle extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: Text(title,
-              style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+          child: Text(
+            title,
+            style: t.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.2,
+            ),
+          ),
         ),
         if (action != null)
           TextButton(
             onPressed: onAction,
-            child: Text(action!,
-                style: const TextStyle(fontWeight: FontWeight.w700)),
+            child: Text(
+              action!,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
           ),
       ],
     );

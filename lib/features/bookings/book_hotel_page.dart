@@ -72,10 +72,10 @@ class _BookHotelPageState extends ConsumerState<BookHotelPage> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
           title: const Icon(Icons.check_circle, color: Color(0xFF26D0CE), size: 60),
           content: Text(
-            paid ? "Votre séjour est payé. Préparez vos valises !" : "Réservation enregistrée avec succès.",
+            paid ? "Your stay is booked and paid. Start packing!" : "Reservation confirmed successfully.",
             textAlign: TextAlign.center,
           ),
-          actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text("Parfait"))],
+          actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text("Great!"))],
         ),
       ),
     );
@@ -89,7 +89,8 @@ class _BookHotelPageState extends ConsumerState<BookHotelPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text('Réserver mon séjour', style: GoogleFonts.philosopher()),
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text('Book My Stay', style: GoogleFonts.philosopher(color: Colors.white)),
       ),
       body: data.when(
         data: (stay) => _buildUI(stay),
@@ -128,9 +129,9 @@ class _BookHotelPageState extends ConsumerState<BookHotelPage> {
                         style: GoogleFonts.philosopher(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                       const SizedBox(height: 10),
-                      _buildCounter("Nombre de chambres", _roomCount, (v) => setState(() => _roomCount = v), Icons.bed_rounded),
-                      _buildCounter("Nombre de voyageurs", _guestCount, (v) => setState(() => _guestCount = v), Icons.people_alt_rounded),
-                      _buildCounter("Nombre de nuits", _nightCount, (v) => setState(() => _nightCount = v), Icons.nightlight_round),
+                      _buildCounter("Rooms", _roomCount, (v) => setState(() => _roomCount = v), Icons.bed_rounded),
+                      _buildCounter("Guests", _guestCount, (v) => setState(() => _guestCount = v), Icons.people_alt_rounded),
+                      _buildCounter("Nights", _nightCount, (v) => setState(() => _nightCount = v), Icons.nightlight_round),
                       
                       const Divider(height: 40, color: Colors.white24),
                       
@@ -141,8 +142,8 @@ class _BookHotelPageState extends ConsumerState<BookHotelPage> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text("Prix total estimé", style: TextStyle(color: Colors.white70, fontSize: 14)),
-                              Text("$totalPrice MAD", style: GoogleFonts.notoSans(fontSize: 30, fontWeight: FontWeight.w900, color: Colors.amber)),
+                              const Text("Estimated Total", style: TextStyle(color: Colors.white70, fontSize: 14)),
+                              Text("$totalPrice MAD", style: GoogleFonts.notoSans(fontSize: 30, fontWeight: FontWeight.w900, color: Color(0xFFD98F39))),
                             ],
                           ),
                           const Icon(Icons.info_outline, color: Colors.white54),
@@ -152,7 +153,7 @@ class _BookHotelPageState extends ConsumerState<BookHotelPage> {
                       const SizedBox(height: 30),
                       
                       PrimaryButton(
-                        label: 'PAYER MAINTENANT',
+                        label: 'PAY NOW',
                         loading: _loading,
                         icon: Icons.credit_card_rounded,
                         onTap: () => _processBooking(stay, payNow: true),
@@ -167,7 +168,7 @@ class _BookHotelPageState extends ConsumerState<BookHotelPage> {
                             padding: const EdgeInsets.symmetric(vertical: 15),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                           ),
-                          child: const Text('Réserver sans payer', style: TextStyle(color: Colors.white)),
+                          child: const Text('Reserve Without Paying', style: TextStyle(color: Colors.white)),
                         ),
                       ),
                     ],

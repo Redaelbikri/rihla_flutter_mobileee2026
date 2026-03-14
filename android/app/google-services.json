@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "980492524757",
+    "project_id": "rihla-travel-app",
+    "storage_bucket": "rihla-travel-app.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:980492524757:android:rihlamobile2026",
+        "android_client_info": {
+          "package_name": "com.example.rihla_mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "980492524757-g1h19t4a2n30ut7vq6mi4uv6ooijt7sg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": ""
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "980492524757-g1h19t4a2n30ut7vq6mi4uv6ooijt7sg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

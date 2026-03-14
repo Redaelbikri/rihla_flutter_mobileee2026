@@ -100,7 +100,7 @@ class _TransportSearchSheetState extends State<_TransportSearchSheet> {
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
-                children: ['TRAIN', 'BUS', 'TAXI', 'FLIGHT']
+                children: ['TRAIN', 'BUS', 'CAR', 'FLIGHT']
                     .map(
                       (v) => ChoiceChip(
                         label: Text(v),

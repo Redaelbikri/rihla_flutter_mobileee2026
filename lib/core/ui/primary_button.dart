@@ -25,8 +25,8 @@ class PrimaryButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: scheme.primary,
           foregroundColor: Colors.white,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           elevation: 0,
         ),
         child: AnimatedSwitcher(
@@ -35,7 +35,10 @@ class PrimaryButton extends StatelessWidget {
               ? const SizedBox(
                   width: 22,
                   height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
                 )
               : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -45,8 +48,13 @@ class PrimaryButton extends StatelessWidget {
                       Icon(icon, size: 18),
                       const SizedBox(width: 10),
                     ],
-                    Text(label,
-                        style: const TextStyle(fontWeight: FontWeight.w800)),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.1,
+                      ),
+                    ),
                   ],
                 ),
         ),

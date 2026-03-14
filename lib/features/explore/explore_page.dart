@@ -17,10 +17,10 @@ final _eventsProvider = FutureProvider.autoDispose((ref) async {
 });
 
 final _staysProvider = FutureProvider.autoDispose.family(
-  (ref, Map<String, String> q) async {
+  (ref, Map<String, String> query) async {
     return ref.read(hebergementsServiceProvider).list(
-          city: q['city'],
-          type: q['type'],
+          city: query['city'],
+          type: query['type'],
         );
   },
 );
@@ -36,7 +36,7 @@ class _ExplorePageState extends ConsumerState<ExplorePage>
     with SingleTickerProviderStateMixin {
   late final TabController tabs;
   final eventQ = TextEditingController();
-  final hotelCity = TextEditingController();
+  final hotelCity = TextEditingController(text: 'Marrakech');
   String hotelType = '';
 
   @override
@@ -48,6 +48,8 @@ class _ExplorePageState extends ConsumerState<ExplorePage>
   @override
   void dispose() {
     tabs.dispose();
+    eventQ.dispose();
+    hotelCity.dispose();
     super.dispose();
   }
 
@@ -62,58 +64,96 @@ class _ExplorePageState extends ConsumerState<ExplorePage>
 
     return Column(
       children: [
-        GlassCard(
-          padding: const EdgeInsets.all(12),
-          child: TabBar(
-            controller: tabs,
-            tabs: const [
-              Tab(text: 'Events'),
-              Tab(text: 'Hotels'),
-              Tab(text: 'Transport'),
-            ],
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          child: GlassCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Explore the best of Morocco',
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Search culture, stays, and transport from one discovery hub.',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: scheme.onSurface.withOpacity(0.7)),
+                ),
+                const SizedBox(height: 16),
+                TabBar(
+                  controller: tabs,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  labelColor: scheme.primary,
+                  unselectedLabelColor: scheme.onSurface.withOpacity(0.54),
+                  tabs: const [
+                    Tab(text: 'Events'),
+                    Tab(text: 'Stays'),
+                    Tab(text: 'Transport'),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Expanded(
           child: TabBarView(
             controller: tabs,
             children: [
               ListView(
-                padding: const EdgeInsets.fromLTRB(2, 4, 2, 92),
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 100),
                 children: [
                   GlassCard(
-                    child: TextField(
-                      controller: eventQ,
-                      decoration: InputDecoration(
-                        labelText: 'Search events',
-                        prefixIcon: const Icon(Icons.search_rounded),
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.arrow_forward_rounded),
-                          onPressed: () async {
-                            final q = eventQ.text.trim();
-                            if (q.isEmpty) return;
-                            final list =
-                                await ref.read(eventsServiceProvider).list(keyword: q);
-                            if (!mounted) return;
-                            showModalBottomSheet(
-                              context: context,
-                              showDragHandle: true,
-                              builder: (_) => _SearchResults(
-                                title: 'Event results',
-                                items: list.take(20).toList(),
-                                onTap: (id) {
-                                  Navigator.pop(context);
-                                  context.push('/event/$id');
-                                },
-                              ),
-                            );
-                          },
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: eventQ,
+                          decoration: const InputDecoration(
+                            labelText: 'Search events or festivals',
+                            prefixIcon: Icon(Icons.search_rounded),
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed: () async {
+                              final query = eventQ.text.trim();
+                              if (query.isEmpty) return;
+                              final list = await ref
+                                  .read(eventsServiceProvider)
+                                  .list(keyword: query);
+                              if (!context.mounted) return;
+                              showModalBottomSheet(
+                                context: context,
+                                showDragHandle: true,
+                                builder: (_) => _SearchResults(
+                                  title: 'Event results',
+                                  items: list.take(20).toList(),
+                                  onTap: (id) {
+                                    Navigator.pop(context);
+                                    context.push('/event/$id');
+                                  },
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.travel_explore_rounded),
+                            label: const Text('Search events'),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  SectionTitle('Events'),
+                  const SizedBox(height: 16),
+                  const SectionTitle('Popular right now'),
+                  const SizedBox(height: 10),
                   events.when(
                     data: (list) => _GridCards(
                       items: list.take(10).toList(),
@@ -121,53 +161,55 @@ class _ExplorePageState extends ConsumerState<ExplorePage>
                       scheme: scheme,
                     ),
                     loading: () => const _GridLoading(),
-                    error: (e, _) => Text(e.toString()),
+                    error: (e, _) => GlassCard(child: Text(e.toString())),
                   ),
                 ],
               ),
               ListView(
-                padding: const EdgeInsets.fromLTRB(2, 4, 2, 92),
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 100),
                 children: [
                   GlassCard(
                     child: Column(
                       children: [
                         TextField(
                           controller: hotelCity,
-                          decoration: const InputDecoration(labelText: 'City'),
+                          decoration: const InputDecoration(
+                            labelText: 'City',
+                            prefixIcon: Icon(Icons.location_city_rounded),
+                          ),
                         ),
                         const SizedBox(height: 10),
                         DropdownButtonFormField<String>(
                           value: hotelType.isEmpty ? null : hotelType,
-                          decoration:
-                              const InputDecoration(labelText: 'Hotel type'),
+                          decoration: const InputDecoration(
+                            labelText: 'Stay type',
+                            prefixIcon: Icon(Icons.apartment_rounded),
+                          ),
                           items: const [
-                            DropdownMenuItem(value: 'HOTEL', child: Text('HOTEL')),
-                            DropdownMenuItem(value: 'RIAD', child: Text('RIAD')),
-                            DropdownMenuItem(
-                                value: 'APPARTEMENT',
-                                child: Text('APPARTEMENT')),
-                            DropdownMenuItem(
-                                value: 'MAISON_HOTE',
-                                child: Text('MAISON_HOTE')),
+                            DropdownMenuItem(value: 'HOTEL', child: Text('Hotel')),
+                            DropdownMenuItem(value: 'RIAD', child: Text('Riad')),
+                            DropdownMenuItem(value: 'HOSTEL', child: Text('Hostel')),
+                            DropdownMenuItem(value: 'AIRBNB', child: Text('Airbnb')),
+                            DropdownMenuItem(value: 'RESORT', child: Text('Resort')),
+                            DropdownMenuItem(value: 'GUESTHOUSE', child: Text('Guest House')),
                           ],
-                          onChanged: (v) => setState(() => hotelType = v ?? ''),
+                          onChanged: (value) => setState(() => hotelType = value ?? ''),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton.icon(
-                            onPressed: () {
-                              ref.invalidate(_staysProvider);
-                            },
+                            onPressed: () => setState(() {}),
                             icon: const Icon(Icons.search_rounded),
-                            label: const Text('Search hotels'),
+                            label: const Text('Refresh stays'),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  SectionTitle('Hotels'),
+                  const SizedBox(height: 16),
+                  const SectionTitle('Handpicked stays'),
+                  const SizedBox(height: 10),
                   stays.when(
                     data: (list) => _GridCards(
                       items: list.take(10).toList(),
@@ -175,26 +217,40 @@ class _ExplorePageState extends ConsumerState<ExplorePage>
                       scheme: scheme,
                     ),
                     loading: () => const _GridLoading(),
-                    error: (e, _) => Text(e.toString()),
+                    error: (e, _) => GlassCard(child: Text(e.toString())),
                   ),
                 ],
               ),
               ListView(
-                padding: const EdgeInsets.fromLTRB(2, 4, 2, 92),
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 100),
                 children: [
                   GlassCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Transport search',
-                          style: TextStyle(fontWeight: FontWeight.w900),
+                        Text(
+                          'Search trains, buses, cars, and flights',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w800),
                         ),
-                        const SizedBox(height: 10),
-                        OutlinedButton.icon(
-                          onPressed: () => showTransportSearch(context),
-                          icon: const Icon(Icons.train_rounded),
-                          label: const Text('Open transport search'),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Open the transport search sheet and query your backend-connected trip inventory.',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(color: scheme.onSurface.withOpacity(0.68)),
+                        ),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed: () => showTransportSearch(context),
+                            icon: const Icon(Icons.train_rounded),
+                            label: const Text('Open transport search'),
+                          ),
                         ),
                       ],
                     ),
@@ -228,7 +284,7 @@ class _GridCards extends StatelessWidget {
       itemCount: items.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        mainAxisExtent: 190,
+        mainAxisExtent: 232,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
@@ -244,31 +300,46 @@ class _GridCards extends StatelessWidget {
             ? DateFormat('MMM d').format(it.dateEvent!)
             : null;
         final subtitle = it is EventModel
-            ? '${it.city ?? '-'} • ${it.price?.toStringAsFixed(0) ?? '-'} MAD${eventDate != null ? ' • $eventDate' : ''}'
+            ? [
+                if ((it.city ?? '').isNotEmpty) it.city!,
+                '${it.price?.toStringAsFixed(0) ?? '-'} MAD',
+                if (eventDate != null) eventDate,
+              ].join(' | ')
             : it is HebergementModel
-                ? '${it.city ?? '-'} • ${it.pricePerNight?.toStringAsFixed(0) ?? '-'} MAD/night'
+                ? [
+                    if ((it.city ?? '').isNotEmpty) it.city!,
+                    '${it.pricePerNight?.toStringAsFixed(0) ?? '-'} MAD / night',
+                  ].join(' | ')
                 : '';
         final img = it.imageUrl?.toString();
 
         return InkWell(
           onTap: () => onTap(id),
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(26),
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.82),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: const Color(0x11FFFFFF)),
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(color: Colors.white.withOpacity(0.6)),
+              boxShadow: const [
+                BoxShadow(
+                  blurRadius: 18,
+                  offset: Offset(0, 10),
+                  color: Color(0x14000000),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(26)),
                     child: SafeNetworkImage(
                       imageUrl: img,
                       fit: BoxFit.cover,
-                      placeholder: Container(color: scheme.primary.withOpacity(0.10)),
+                      placeholder: Container(color: scheme.primary.withOpacity(0.08)),
                     ),
                   ),
                 ),
@@ -281,20 +352,23 @@ class _GridCards extends StatelessWidget {
                         title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w900),
+                        style: const TextStyle(fontWeight: FontWeight.w800),
                       ),
                       if (subtitle.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Text(
                           subtitle,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 12),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: scheme.onSurface.withOpacity(0.64),
+                          ),
                         ),
                       ],
                     ],
                   ),
-                )
+                ),
               ],
             ),
           ),
@@ -315,14 +389,14 @@ class _GridLoading extends StatelessWidget {
       itemCount: 6,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        mainAxisExtent: 190,
+        mainAxisExtent: 232,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
       itemBuilder: (context, i) => Container(
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.75),
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(26),
         ),
       ),
     );
@@ -352,7 +426,7 @@ class _SearchResults extends StatelessWidget {
               style: Theme.of(context)
                   .textTheme
                   .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w900),
+                  ?.copyWith(fontWeight: FontWeight.w800),
             ),
           ),
           ...items.map((it) {
@@ -363,7 +437,7 @@ class _SearchResults extends StatelessWidget {
                     ? it.name
                     : 'Item';
             return ListTile(
-              title: Text(name, style: const TextStyle(fontWeight: FontWeight.w800)),
+              title: Text(name, style: const TextStyle(fontWeight: FontWeight.w700)),
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () => onTap(id),
             );

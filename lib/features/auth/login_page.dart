@@ -71,7 +71,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       err = null;
     });
     try {
-      final google = GoogleSignIn(scopes: const ['email', 'profile']);
+      final google = GoogleSignIn(
+        scopes: const ['email', 'profile'],
+        serverClientId: '980492524757-g1h19t4a2n30ut7vq6mi4uv6ooijt7sg.apps.googleusercontent.com',
+      );
       await google.signOut();
       final account = await google.signIn();
       if (account == null) return;
