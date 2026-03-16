@@ -9,15 +9,15 @@ import '../../core/ui/safe_network_image.dart';
 import 'recommendations_service.dart';
 
 final _recommendationsProvider = FutureProvider.autoDispose
-    .family<RecommendationsBundle, Map<String, String>>((ref, q) async {
+    .family<RecommendationsBundle, (String, String, String, String, String, String)>((ref, q) async {
+  final (city, category, fromCity, toCity, date, transportType) = q;
   return ref.read(recommendationsServiceProvider).fetch(
-        city: q['city']?.isNotEmpty == true ? q['city'] : null,
-        category: q['category']?.isNotEmpty == true ? q['category'] : null,
-        fromCity: q['fromCity']?.isNotEmpty == true ? q['fromCity'] : null,
-        toCity: q['toCity']?.isNotEmpty == true ? q['toCity'] : null,
-        date: q['date']?.isNotEmpty == true ? q['date'] : null,
-        transportType:
-            q['transportType']?.isNotEmpty == true ? q['transportType'] : null,
+        city: city.isNotEmpty ? city : null,
+        category: category.isNotEmpty ? category : null,
+        fromCity: fromCity.isNotEmpty ? fromCity : null,
+        toCity: toCity.isNotEmpty ? toCity : null,
+        date: date.isNotEmpty ? date : null,
+        transportType: transportType.isNotEmpty ? transportType : null,
       );
 });
 
@@ -37,14 +37,6 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
   String transportType = '';
   bool filtersExpanded = false;
 
-  Map<String, String> get query => {
-        'city': cityCtrl.text.trim(),
-        'category': categoryCtrl.text.trim(),
-        'fromCity': fromCityCtrl.text.trim(),
-        'toCity': toCityCtrl.text.trim(),
-        'transportType': transportType,
-      };
-
   @override
   void dispose() {
     cityCtrl.dispose();
@@ -58,7 +50,14 @@ class _RecommendationsPageState extends ConsumerState<RecommendationsPage> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final t = Theme.of(context).textTheme;
-    final data = ref.watch(_recommendationsProvider(query));
+    final data = ref.watch(_recommendationsProvider((
+      cityCtrl.text.trim(),
+      categoryCtrl.text.trim(),
+      fromCityCtrl.text.trim(),
+      toCityCtrl.text.trim(),
+      '', // date not used in UI currently
+      transportType,
+    )));
 
     return Scaffold(
       appBar: AppBar(title: const Text('Recommendations')),
@@ -187,6 +186,11 @@ class _BundleView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // If everything is empty, show hardcoded Moroccan recommendations
+    final hasData = bundle.events.isNotEmpty || bundle.stays.isNotEmpty || bundle.trips.isNotEmpty;
+    if (!hasData) {
+      return const _FakeRecommendations();
+    }
     return Column(
       children: [
         _Section(
@@ -358,6 +362,128 @@ class _CardItem extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _FakeRecommendations extends StatelessWidget {
+  const _FakeRecommendations();
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFD98F39).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFD98F39).withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.auto_awesome_rounded, color: Color(0xFFD98F39), size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Curated picks for Morocco — search above to personalise',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text('Top Events', style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+        const SizedBox(height: 8),
+        ..._fakeEvents.map((e) => _FakeCard(
+          title: e['title']!,
+          subtitle: e['subtitle']!,
+          icon: Icons.festival_rounded,
+          color: const Color(0xFFD98F39),
+        )),
+        const SizedBox(height: 12),
+        Text('Top Stays', style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+        const SizedBox(height: 8),
+        ..._fakeStays.map((s) => _FakeCard(
+          title: s['title']!,
+          subtitle: s['subtitle']!,
+          icon: Icons.hotel_rounded,
+          color: const Color(0xFF0C6171),
+        )),
+        const SizedBox(height: 12),
+        Text('Top Routes', style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+        const SizedBox(height: 8),
+        ..._fakeRoutes.map((r) => _FakeCard(
+          title: r['title']!,
+          subtitle: r['subtitle']!,
+          icon: Icons.train_rounded,
+          color: const Color(0xFF197278),
+        )),
+      ],
+    );
+  }
+
+  static const _fakeEvents = [
+    {'title': 'Marrakech International Film Festival', 'subtitle': 'Marrakech • Nov | 150 MAD'},
+    {'title': 'Fes Sacred Music Festival', 'subtitle': 'Fes • Jun | 80 MAD'},
+    {'title': 'Gnaoua World Music Festival', 'subtitle': 'Essaouira • Jun | Free'},
+    {'title': 'Tan-Tan Moussem', 'subtitle': 'Tan-Tan • Jul | 50 MAD'},
+  ];
+  static const _fakeStays = [
+    {'title': 'Riad Yasmine', 'subtitle': 'Marrakech Medina • 450 MAD / night'},
+    {'title': 'Hotel La Mamounia', 'subtitle': 'Marrakech • 2,800 MAD / night'},
+    {'title': 'Palais Faraj Suites', 'subtitle': 'Fes • 890 MAD / night'},
+    {'title': 'Kasbah Tamadot', 'subtitle': 'Atlas Mountains • 1,200 MAD / night'},
+  ];
+  static const _fakeRoutes = [
+    {'title': 'Casablanca → Marrakech', 'subtitle': 'TRAIN • 2h 10min | from 89 MAD'},
+    {'title': 'Rabat → Fes', 'subtitle': 'TRAIN • 2h 40min | from 105 MAD'},
+    {'title': 'Marrakech → Agadir', 'subtitle': 'BUS • 3h | from 60 MAD'},
+    {'title': 'Casablanca → Tangier', 'subtitle': 'TRAIN • 2h 45min | from 120 MAD'},
+  ];
+}
+
+class _FakeCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  const _FakeCard({required this.title, required this.subtitle, required this.icon, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 3),
+                Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey.shade600), maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          Icon(Icons.chevron_right_rounded, color: color, size: 20),
+        ],
       ),
     );
   }

@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 
 import '../../core/models/reservation_model.dart';
 import '../../core/ui/glass.dart';
-import '../../core/ui/primary_button.dart';
 import '../payments/payments_service.dart';
 import 'reservations_service.dart';
 
@@ -14,11 +13,61 @@ final _myBookingsProvider = FutureProvider.autoDispose((ref) async {
   return ref.read(reservationsServiceProvider).myReservations();
 });
 
-class BookingsPage extends ConsumerWidget {
+class BookingsPage extends ConsumerStatefulWidget {
   const BookingsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BookingsPage> createState() => _BookingsPageState();
+}
+
+class _BookingsPageState extends ConsumerState<BookingsPage> {
+  String? _payingId;
+
+  Future<void> _pay(BuildContext context, ReservationModel b) async {
+    final amount = b.amount ?? 0;
+    if (amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No payment amount found for this reservation.')),
+      );
+      return;
+    }
+    setState(() => _payingId = b.id);
+    try {
+      await ref.read(paymentsServiceProvider).payReservation(
+        reservationId: b.id,
+        amountMad: amount,
+      );
+      ref.invalidate(_myBookingsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Payment successful! Your ticket is ready.'),
+            backgroundColor: Colors.green.shade600,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+        _showTickets(context, ref, b);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        final msg = e.toString().replaceFirst('Exception: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(msg),
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _payingId = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final data = ref.watch(_myBookingsProvider);
     final t = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
@@ -83,6 +132,7 @@ class BookingsPage extends ConsumerWidget {
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _ReservationCard(
                     reservation: b,
+                    isPaying: _payingId == b.id,
                     onCancel: () async {
                       await ref.read(reservationsServiceProvider).cancel(b.id);
                       ref.invalidate(_myBookingsProvider);
@@ -92,7 +142,7 @@ class BookingsPage extends ConsumerWidget {
                         );
                       }
                     },
-                    onPay: () => context.push('/payments'),
+                    onPay: () => _pay(context, b),
                     onTickets: () => _showTickets(context, ref, b),
                   ).animate().fadeIn(delay: Duration(milliseconds: i * 60), duration: 400.ms),
                 );
@@ -106,7 +156,22 @@ class BookingsPage extends ConsumerWidget {
             ),
           ),
           error: (e, _) => GlassCard(
-            child: Text(e.toString(), style: const TextStyle(color: Colors.red)),
+            child: Column(
+              children: [
+                const Icon(Icons.wifi_off_rounded, size: 40, color: Colors.red),
+                const SizedBox(height: 8),
+                Text('Could not load reservations:\n${e.toString()}',
+                  style: const TextStyle(color: Colors.red),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => ref.invalidate(_myBookingsProvider),
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Retry'),
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -131,12 +196,14 @@ class _ReservationCard extends StatelessWidget {
   final VoidCallback onCancel;
   final VoidCallback onPay;
   final VoidCallback onTickets;
+  final bool isPaying;
 
   const _ReservationCard({
     required this.reservation,
     required this.onCancel,
     required this.onPay,
     required this.onTickets,
+    this.isPaying = false,
   });
 
   Color _statusColor(BuildContext context, String? status) {
@@ -144,6 +211,7 @@ class _ReservationCard extends StatelessWidget {
       case 'CONFIRMED':
         return Colors.green.shade600;
       case 'PENDING':
+      case 'PENDING_PAYMENT':
         return Colors.orange.shade700;
       case 'CANCELLED':
         return Colors.red.shade600;
@@ -251,18 +319,7 @@ class _ReservationCard extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: onTickets,
                   icon: const Icon(Icons.confirmation_num_rounded, size: 16),
-                  label: const Text('Tickets'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: onPay,
-                  icon: const Icon(Icons.credit_card_rounded, size: 16),
-                  label: const Text('Payments'),
+                  label: const Text('My Tickets'),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
@@ -270,18 +327,42 @@ class _ReservationCard extends StatelessWidget {
               ),
               if (canCancel) ...[
                 const SizedBox(width: 8),
-                OutlinedButton(
-                  onPressed: onCancel,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red,
-                    side: const BorderSide(color: Colors.red),
-                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                SizedBox(
+                  width: 44,
+                  height: 40,
+                  child: OutlinedButton(
+                    onPressed: onCancel,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      padding: EdgeInsets.zero,
+                    ),
+                    child: const Icon(Icons.cancel_outlined, size: 18),
                   ),
-                  child: const Icon(Icons.cancel_outlined, size: 16),
                 ),
               ],
             ],
           ),
+          if (({'PENDING', 'PENDING_PAYMENT'}.contains(status?.toUpperCase())) && (reservation.amount ?? 0) > 0) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: isPaying ? null : onPay,
+                icon: isPaying
+                    ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.payment_rounded, size: 18),
+                label: Text(isPaying ? 'Processing payment...' : 'Pay Now — ${reservation.amount!.toStringAsFixed(0)} MAD'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0C6171),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

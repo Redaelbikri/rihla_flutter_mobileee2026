@@ -38,17 +38,30 @@ class TripDetailsPage extends ConsumerWidget {
 
   Future<void> _quickPay(BuildContext context, WidgetRef ref, TripModel tr) async {
     if (!_ensureAuthed(context, ref)) return;
-    final r = await ref.read(reservationsServiceProvider).createTransport(
-          tripId: id,
-          quantity: 1,
+    try {
+      final r = await ref.read(reservationsServiceProvider).createTransport(
+            tripId: id,
+            quantity: 1,
+          );
+      await ref.read(paymentsServiceProvider).payReservation(
+            reservationId: r.id,
+            amountMad: tr.price ?? 0,
+          );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Payment successful!'), backgroundColor: Colors.green),
         );
-    await ref.read(paymentsServiceProvider).payReservation(
-          reservationId: r.id,
-          amountMad: tr.price ?? 0,
+      }
+    } catch (err) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(err.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 6),
+          ),
         );
-    if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Payment success')));
+      }
     }
   }
 

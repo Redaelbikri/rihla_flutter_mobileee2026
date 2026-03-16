@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -15,6 +16,7 @@ import '../../features/itineraries/itinerary_history_page.dart';
 import '../../features/itineraries/itinerary_planner_page.dart';
 import '../../features/itineraries/itinerary_result_page.dart';
 import '../../features/notifications/notifications_page.dart';
+import '../../features/reservations/bookings_page.dart';
 import '../../features/onboarding/onboarding_page.dart';
 import '../../features/payments/payment_history_page.dart';
 import '../../features/recommendations/recommendations_page.dart';
@@ -122,6 +124,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/book/transport/:id',
         builder: (_, s) => BookTransportPage(id: s.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/bookings',
+        builder: (_, __) => Scaffold(
+          appBar: AppBar(
+            title: const Text('My Trips'),
+            backgroundColor: const Color(0xFF0C6171),
+            foregroundColor: Colors.white,
+            elevation: 0,
+          ),
+          backgroundColor: const Color(0xFFF5F7FA),
+          body: const BookingsPage(),
+        ),
       ),
     ],
     redirect: (context, state) {

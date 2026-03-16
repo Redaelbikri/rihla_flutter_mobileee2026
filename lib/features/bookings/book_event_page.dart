@@ -1,9 +1,10 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+
+import 'package:go_router/go_router.dart';
 
 import '../../core/models/event_model.dart';
 import '../../core/ui/glass.dart';
@@ -48,7 +49,22 @@ class _BookEventPageState extends ConsumerState<BookEventPage> {
       }
 
       if (mounted) {
-        _showConfirmation(payNow);
+        final msg = payNow
+            ? 'Payment confirmed! Ticket details sent to your email.'
+            : 'Reservation made! Pay later from My Trips.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(children: [
+              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Expanded(child: Text(msg)),
+            ]),
+            backgroundColor: const Color(0xFF0C6171),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+        context.go('/bookings');
       }
     } catch (e) {
       if (mounted) {
@@ -62,59 +78,6 @@ class _BookEventPageState extends ConsumerState<BookEventPage> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
-  }
-
-  void _showConfirmation(bool paid) {
-    showDialog(
-      context: context,
-      builder: (c) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-        child: AlertDialog(
-          backgroundColor: Colors.white.withOpacity(0.92),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-          title: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF0C6171), Color(0xFFD98F39)],
-                  ),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.check_rounded,
-                    color: Colors.white, size: 36),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                paid ? 'Payment Confirmed!' : 'Reservation Made!',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 20,
-                ),
-              ),
-            ],
-          ),
-          content: Text(
-            paid
-                ? 'Your tickets are booked and paid. See you at the event!'
-                : 'Your reservation is confirmed. You can pay later.',
-            textAlign: TextAlign.center,
-          ),
-          actions: [
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: () => Navigator.pop(c),
-                child: const Text('Great!'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   @override

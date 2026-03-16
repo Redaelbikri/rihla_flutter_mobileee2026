@@ -137,6 +137,22 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           child: Column(
             children: [
               _ProfileMenuItem(
+                icon: Icons.luggage_rounded,
+                label: 'My Trips',
+                subtitle: 'View your reservations & tickets',
+                color: const Color(0xFF197278),
+                onTap: () => context.push('/bookings'),
+              ),
+              const Divider(height: 1),
+              _ProfileMenuItem(
+                icon: Icons.notifications_rounded,
+                label: 'Notifications',
+                subtitle: 'View alerts and updates',
+                color: const Color(0xFFD98F39),
+                onTap: () => context.push('/notifications'),
+              ),
+              const Divider(height: 1),
+              _ProfileMenuItem(
                 icon: Icons.chat_bubble_outline_rounded,
                 label: 'AI Assistant',
                 subtitle: 'Chat with your travel guide',
@@ -166,6 +182,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 subtitle: 'Personalized suggestions for you',
                 color: scheme.secondary,
                 onTap: () => context.push('/recommendations'),
+              ),
+              const Divider(height: 1),
+              const Divider(height: 1),
+              _ProfileMenuItem(
+                icon: Icons.credit_card_rounded,
+                label: 'Payments & Invoices',
+                subtitle: 'View payment history and invoices',
+                color: const Color(0xFF0C6171),
+                onTap: () => context.push('/payments'),
               ),
               const Divider(height: 1),
               _ProfileMenuItem(

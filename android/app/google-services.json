@@ -1,13 +1,13 @@
 {
   "project_info": {
     "project_number": "980492524757",
-    "project_id": "rihla-travel-app",
-    "storage_bucket": "rihla-travel-app.appspot.com"
+    "project_id": "rihla-auth-488801",
+    "storage_bucket": "rihla-auth-488801.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:980492524757:android:rihlamobile2026",
+        "mobilesdk_app_id": "1:980492524757:android:0000000000000001",
         "android_client_info": {
           "package_name": "com.example.rihla_mobile"
         }
@@ -20,7 +20,7 @@
       ],
       "api_key": [
         {
-          "current_key": ""
+          "current_key": "PLACEHOLDER_REGISTER_SHA1_IN_GOOGLE_CLOUD_CONSOLE"
         }
       ],
       "services": {

@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'dart:ui';
+import 'package:go_router/go_router.dart';
 
 import '../../core/models/hebergement_model.dart';
 import '../../core/ui/glass.dart';
@@ -49,7 +49,22 @@ class _BookHotelPageState extends ConsumerState<BookHotelPage> {
       }
 
       if (mounted) {
-        _showConfirmation(payNow);
+        final msg = payNow
+            ? 'Stay booked & paid! Ticket details sent to your email.'
+            : 'Stay reserved! Pay later from My Trips.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(children: [
+              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Expanded(child: Text(msg)),
+            ]),
+            backgroundColor: const Color(0xFF0C6171),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+        context.go('/bookings');
       }
     } catch (e) {
       if (mounted) {
@@ -60,25 +75,6 @@ class _BookHotelPageState extends ConsumerState<BookHotelPage> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
-  }
-
-  void _showConfirmation(bool paid) {
-    showDialog(
-      context: context,
-      builder: (c) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-        child: AlertDialog(
-          backgroundColor: Colors.white.withOpacity(0.9),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-          title: const Icon(Icons.check_circle, color: Color(0xFF26D0CE), size: 60),
-          content: Text(
-            paid ? "Your stay is booked and paid. Start packing!" : "Reservation confirmed successfully.",
-            textAlign: TextAlign.center,
-          ),
-          actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text("Great!"))],
-        ),
-      ),
-    );
   }
 
   @override

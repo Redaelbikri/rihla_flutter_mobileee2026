@@ -11,15 +11,26 @@ class AppConfig {
   static const String _explicitBaseUrl =
       String.fromEnvironment('BASE_URL', defaultValue: '');
 
-  // IMPORTANT: This publishable key must match the same Stripe account
-  // as the backend's STRIPE_SECRET_KEY (sk_test_51TAYJD2EPDYBF...).
-  // Get your publishable key from https://dashboard.stripe.com/apikeys
-  // and override at build time:
-  //   flutter run --dart-define=STRIPE_PUBLISHABLE_KEY=pk_test_YOUR_KEY
+  // ── Stripe ────────────────────────────────────────────────────────────────
+  // MUST match the Stripe account that owns the backend secret key.
+  // Backend secret key starts with: sk_test_51TAYJD2EPDYBF...
+  // → Get the matching publishable key from https://dashboard.stripe.com/apikeys
+  //   (it starts with pk_test_51TAYJD2EPDYBF...)
+  // Supply at build time:
+  //   --dart-define=STRIPE_PUBLISHABLE_KEY=pk_test_51TAYJD2EPDYBF...
   static const String stripePublishableKey = String.fromEnvironment(
     'STRIPE_PUBLISHABLE_KEY',
-    defaultValue:
-        'pk_test_51Sxr5ZPOyuSYqxOrhp26ytuiaon4J4CO83yFw2blbOaiLPXA3Sl4K8fHFxF2q19w0rapg6o3F1IfIRA6g7cDTypN003iI8PXX9',
+    defaultValue: 'pk_test_51TBONNHWgarvtGrAJ8QCcdpYDDtvFN6NVDKBaNw23EPvHc4VrEIloJ8nKjGatY6nRgiQGMmrEeouDHCehnRrVumr00kA0Ng8mf',
+  );
+
+  // ── Google Sign-In ────────────────────────────────────────────────────────
+  // Web OAuth client ID from Google Cloud Console.
+  // Used as serverClientId so google_sign_in returns an idToken.
+  // Supply at build time:
+  //   --dart-define=GOOGLE_CLIENT_ID=980492524757-xxxx.apps.googleusercontent.com
+  static const String googleClientId = String.fromEnvironment(
+    'GOOGLE_CLIENT_ID',
+    defaultValue: '980492524757-g1h19t4a2n30ut7vq6mi4uv6ooijt7sg.apps.googleusercontent.com',
   );
 
   static String get baseUrl {

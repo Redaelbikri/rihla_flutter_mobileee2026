@@ -45,17 +45,33 @@ class EventDetailsPage extends ConsumerWidget {
 
   Future<void> _quickPay(BuildContext context, WidgetRef ref, EventModel e) async {
     if (!_ensureAuthed(context, ref)) return;
-    final r = await ref.read(reservationsServiceProvider).createEvent(
-          eventId: id,
-          quantity: 1,
+    try {
+      final r = await ref.read(reservationsServiceProvider).createEvent(
+            eventId: id,
+            quantity: 1,
+          );
+      await ref.read(paymentsServiceProvider).payReservation(
+            reservationId: r.id,
+            amountMad: e.price ?? 0,
+          );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Payment successful!'),
+            backgroundColor: Colors.green,
+          ),
         );
-    await ref.read(paymentsServiceProvider).payReservation(
-          reservationId: r.id,
-          amountMad: e.price ?? 0,
+      }
+    } catch (err) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(err.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 6),
+          ),
         );
-    if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Payment success')));
+      }
     }
   }
 
