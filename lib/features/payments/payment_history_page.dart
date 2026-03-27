@@ -238,7 +238,13 @@ class _InvoicesList extends StatelessWidget {
             final amount = (rawAmount is num)
                 ? (rawAmount as num).toDouble()
                 : double.tryParse('$rawAmount');
-            final dateStr = _formatDate(inv['createdAt']?.toString() ?? inv['date']?.toString());
+            final dateStr = _formatDate(
+              inv['issuedAt']?.toString() ??
+                  inv['createdAt']?.toString() ??
+                  inv['date']?.toString(),
+            );
+            final invoiceNumber = (inv['factureNumber'] ?? inv['id'] ?? inv['_id'] ?? '')
+                .toString();
 
             return GlassCard(
               child: ListTile(
@@ -253,7 +259,9 @@ class _InvoicesList extends StatelessWidget {
                   child: Icon(Icons.description_rounded, color: scheme.secondary),
                 ),
                 title: Text(
-                  'Invoice #${(inv['id'] ?? inv['_id'] ?? '').toString().substring(0, (inv['id'] ?? inv['_id'] ?? '').toString().length.clamp(0, 8))}',
+                  invoiceNumber.isEmpty
+                      ? 'Invoice'
+                      : 'Invoice #${invoiceNumber.substring(0, invoiceNumber.length.clamp(0, 16))}',
                   style: t.bodyLarge?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 subtitle: Column(

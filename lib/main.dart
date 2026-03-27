@@ -32,18 +32,17 @@ Future<void> main() async {
     // ignore: avoid_print
     print('✅ Stripe initialized with key: ${stripeKey.substring(0, 20)}...');
 
-    // IMPORTANT: Verify key account matches backend
-    // Backend secret key: sk_test_51TAYJD2EPDYBFEmW...
-    // → Your publishable key MUST start with: pk_test_51TAYJD2EPDYBF
-    // → Current key starts with: ${stripeKey.substring(0, 20)}
-    // If accounts don't match, you'll get "No such payment_intent" errors.
+    // IMPORTANT: Verify key account matches backend.
+    // If accounts don't match, Stripe will return "No such payment_intent".
+    // Current frontend account prefix: pk_test_51TBONNHWgarvtGr...
+    // Backend secret key must be from the same Stripe account.
   } else {
     // ignore: avoid_print
     print(
       '⚠️  STRIPE_PUBLISHABLE_KEY not configured.\n'
-      '   Run with: --dart-define=STRIPE_PUBLISHABLE_KEY=pk_test_51TAYJD2EPDYBF...\n'
+      '   Run with: --dart-define=STRIPE_PUBLISHABLE_KEY=pk_test_51TBONNHWgarvtGr...\n'
       '   IMPORTANT: The publishable key must match the backend secret key account.\n'
-      '   Backend account: sk_test_51TAYJD2EPDYBFEmW...',
+      '   Backend secret key must start with: sk_test_51TBONNHWgarvtGr...',
     );
   }
 

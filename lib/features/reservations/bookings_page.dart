@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -50,6 +51,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
         _showTickets(context, ref, b);
       }
     } catch (e) {
+      debugPrint('[Payments] payReservation failed for reservationId=${b.id}: $e');
       if (context.mounted) {
         final msg = e.toString().replaceFirst('Exception: ', '');
         ScaffoldMessenger.of(context).showSnackBar(
@@ -238,6 +240,7 @@ class _ReservationCard extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     final status = reservation.status;
+    final paymentStatus = reservation.paymentStatus;
     final statusColor = _statusColor(context, status);
     final canCancel = (status?.toUpperCase() != 'CANCELLED' && status?.toUpperCase() != 'CONFIRMED');
     final dateStr = reservation.createdAt != null
@@ -294,6 +297,23 @@ class _ReservationCard extends StatelessWidget {
               ),
             ],
           ),
+          if (paymentStatus != null && paymentStatus.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Icon(Icons.credit_card_rounded,
+                    size: 14, color: scheme.onSurface.withOpacity(0.45)),
+                const SizedBox(width: 6),
+                Text(
+                  'Payment: $paymentStatus',
+                  style: t.bodySmall?.copyWith(
+                    color: scheme.onSurface.withOpacity(0.55),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 12),
           Row(
             children: [
@@ -343,7 +363,9 @@ class _ReservationCard extends StatelessWidget {
               ],
             ],
           ),
-          if (({'PENDING', 'PENDING_PAYMENT'}.contains(status?.toUpperCase())) && (reservation.amount ?? 0) > 0) ...[
+          if (({'PENDING', 'PENDING_PAYMENT'}.contains(status?.toUpperCase()) ||
+                  {'PENDING', 'REQUIRES_PAYMENT'}.contains(paymentStatus?.toUpperCase())) &&
+              (reservation.amount ?? 0) > 0) ...[
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,

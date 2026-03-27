@@ -85,9 +85,15 @@ class AuthService {
     }
   }
 
-  Future<void> resendOtp({required String email}) async {
+  Future<void> resendOtp({
+    required String email,
+    required String flow,
+  }) async {
     try {
-      await _dio.post('/api/auth/resend-otp', data: {'email': email});
+      await _dio.post('/api/auth/resend-otp', data: {
+        'email': email,
+        'flow': flow,
+      });
     } on DioException catch (e) {
       throw dioToApiError(e);
     }

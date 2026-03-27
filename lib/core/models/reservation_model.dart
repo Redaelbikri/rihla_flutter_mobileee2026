@@ -4,6 +4,7 @@ class ReservationModel {
   final String? itemId;
   final String? title;
   final String? status;
+  final String? paymentStatus;
   final int? quantity;
   final double? amount;
   final String? createdAt;
@@ -15,6 +16,7 @@ class ReservationModel {
     this.itemId,
     this.title,
     this.status,
+    this.paymentStatus,
     this.quantity,
     this.amount,
     this.createdAt,
@@ -58,6 +60,7 @@ class ReservationModel {
                 j['transport']?['name'])
             ?.toString(),
         status: (j['status'] ?? j['state'])?.toString(),
+        paymentStatus: (j['paymentStatus'] ?? j['payment_state'])?.toString(),
         quantity: (j['quantity'] is num)
             ? (j['quantity'] as num).toInt()
             : int.tryParse(

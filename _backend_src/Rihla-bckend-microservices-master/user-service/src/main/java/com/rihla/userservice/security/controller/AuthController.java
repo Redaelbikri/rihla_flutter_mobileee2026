@@ -101,14 +101,29 @@ public class AuthController {
     @PostMapping("/resend-otp")
     public ResponseEntity<?> resendOtp(@RequestBody Map<String, String> body) {
         String email = body.get("email");
+        String flow = body.getOrDefault("flow", "signup");
         if (email == null || email.isBlank()) {
             return ResponseEntity.badRequest().body("Email is required.");
         }
+
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {
             // Return generic message to avoid user enumeration
             return ResponseEntity.ok(Map.of("message", "If that email exists, an OTP was sent."));
         }
+
+        if ("login".equalsIgnoreCase(flow)) {
+            if (!user.isEnabled()) {
+                return ResponseEntity.badRequest().body("Email not verified. Please check your inbox.");
+            }
+            if (user.getProvider() != Provider.LOCAL) {
+                return ResponseEntity.badRequest().body("Please sign in with Google.");
+            }
+            String code = otpService.generateAndSave(email, OtpType.LOGIN_2FA);
+            emailService.sendOtp(email, OtpType.LOGIN_2FA, code);
+            return ResponseEntity.ok(Map.of("message", "Login OTP resent to " + email));
+        }
+
         if (user.isEnabled()) {
             return ResponseEntity.badRequest().body("Email already verified.");
         }

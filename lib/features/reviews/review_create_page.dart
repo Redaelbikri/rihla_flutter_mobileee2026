@@ -41,7 +41,7 @@ class _ReviewCreatePageState extends ConsumerState<ReviewCreatePage> {
           );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Review posted — pending approval.')),
+          const SnackBar(content: Text('Review posted successfully.')),
         );
         Navigator.pop(context);
       }
@@ -60,6 +60,12 @@ class _ReviewCreatePageState extends ConsumerState<ReviewCreatePage> {
     final scheme = Theme.of(context).colorScheme;
     final t = Theme.of(context).textTheme;
     final type = (widget.extra['type'] ?? '').toString();
+    final typeLabel = switch (type.toUpperCase()) {
+      'EVENT' => 'Event',
+      'HEBERGEMENT' => 'Stay',
+      'TRANSPORT' => 'Transport',
+      _ => type,
+    };
 
     return Scaffold(
       appBar: AppBar(title: const Text('Write a Review')),
@@ -79,7 +85,7 @@ class _ReviewCreatePageState extends ConsumerState<ReviewCreatePage> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        type,
+                        typeLabel,
                         style: TextStyle(
                           color: scheme.primary,
                           fontWeight: FontWeight.w800,
@@ -156,7 +162,7 @@ class _ReviewCreatePageState extends ConsumerState<ReviewCreatePage> {
                 const SizedBox(height: 8),
                 Center(
                   child: Text(
-                    'Reviews are pending approval before appearing publicly.',
+                    'Your review is sent to the live backend for this reservation.',
                     style: t.bodySmall?.copyWith(
                         color: scheme.onSurface.withOpacity(0.5)),
                     textAlign: TextAlign.center,

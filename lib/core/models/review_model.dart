@@ -17,7 +17,10 @@ class ReviewModel {
 
   factory ReviewModel.fromJson(Map<String, dynamic> j) => ReviewModel(
         id: (j['id'] ?? j['_id']).toString(),
-        userName: (j['userName'] ?? j['author'] ?? j['user']?['fullName'])
+        userName: (j['userName'] ??
+                j['author'] ??
+                j['user']?['fullName'] ??
+                j['userId'])
             ?.toString(),
         rating: (j['rating'] is num)
             ? (j['rating'] as num).toDouble()

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:convert';
 
 import '../../core/api/api_helpers.dart';
 import '../../core/di/providers.dart';
@@ -21,7 +22,7 @@ class ReviewsService {
         return 'ACCOMMODATION';
       case 'TRANSPORT':
       case 'TRIP':
-        return 'TRIP';
+        return 'TRANSPORT';
       default:
         return 'EVENT';
     }
@@ -58,12 +59,20 @@ class ReviewsService {
     required String comment,
   }) async {
     try {
-      await _dio.post('/api/reviews', data: {
+      final dto = {
         'targetType': _apiType(type),
         'targetId': targetId,
         'rating': rating.round().clamp(1, 5),
         'commentaire': comment,
+      };
+      final form = FormData.fromMap({
+        'dto': MultipartFile.fromString(
+          jsonEncode(dto),
+          filename: 'dto.json',
+          contentType: DioMediaType.parse('application/json'),
+        ),
       });
+      await _dio.post('/api/reviews', data: form);
     } on DioException catch (e) {
       throw dioToApiError(e);
     }
