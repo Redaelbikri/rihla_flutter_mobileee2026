@@ -1,4 +1,5 @@
-import 'dart:math';
+﻿import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,48 +17,53 @@ class SplashPage extends ConsumerStatefulWidget {
 
 class _SplashPageState extends ConsumerState<SplashPage>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _rotateCtrl;
+  late final AnimationController _orbitCtrl;
 
   @override
   void initState() {
     super.initState();
-    _rotateCtrl = AnimationController(
+    _orbitCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 12),
+      duration: const Duration(seconds: 6),
     )..repeat();
     _boot();
   }
 
   @override
   void dispose() {
-    _rotateCtrl.dispose();
+    _orbitCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _boot() async {
-    await Future.delayed(const Duration(milliseconds: 1800));
-    final session = ref.read(authSessionProvider);
-    final store = ref.read(secureStoreProvider);
+    try {
+      await Future.delayed(const Duration(milliseconds: 1700));
+      final session = ref.read(authSessionProvider);
+      final store = ref.read(secureStoreProvider);
 
-    await session.init();
-    final onboarded = await store.readOnboarded();
-    if (!mounted) return;
+      await session.init();
+      final onboarded = await store.readOnboarded();
+      if (!mounted) return;
 
-    if (!onboarded) {
-      context.go('/onboarding');
-      return;
-    }
-
-    if (session.isAuthenticated) {
-      try {
-        await ref.read(profileServiceProvider).me();
-      } catch (_) {
-        await session.logout();
+      if (!onboarded) {
+        context.go('/onboarding');
+        return;
       }
-    }
 
-    if (!mounted) return;
-    context.go(session.isAuthenticated ? '/app' : '/auth/login');
+      if (session.isAuthenticated) {
+        try {
+          await ref.read(profileServiceProvider).me();
+        } catch (_) {
+          await session.logout();
+        }
+      }
+
+      if (!mounted) return;
+      context.go(session.isAuthenticated ? '/app' : '/auth/login');
+    } catch (_) {
+      if (!mounted) return;
+      context.go('/auth/login');
+    }
   }
 
   @override
@@ -65,177 +71,122 @@ class _SplashPageState extends ConsumerState<SplashPage>
     return Scaffold(
       body: Stack(
         children: [
-          // Gradient background
           Positioned.fill(
-            child: Container(
+            child: DecoratedBox(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Color(0xFF0C2D3D),
-                    Color(0xFF0C6171),
-                    Color(0xFF1A8B74),
-                    Color(0xFFD98F39),
+                    Color(0xFFFFFFFF),
+                    Color(0xFFEFF5FF),
+                    Color(0xFFDDEBFF),
                   ],
-                  stops: [0.0, 0.38, 0.72, 1.0],
                 ),
               ),
             ),
           ),
-
-          // Rotating decorative ring
+          Positioned(
+            top: -120,
+            right: -100,
+            child: _blurCircle(
+              const Color(0xFF8BC6FF).withOpacity(0.45),
+              260,
+            ),
+          ),
+          Positioned(
+            bottom: -140,
+            left: -90,
+            child: _blurCircle(
+              const Color(0xFF60D3E8).withOpacity(0.34),
+              300,
+            ),
+          ),
           Center(
             child: AnimatedBuilder(
-              animation: _rotateCtrl,
-              builder: (_, child) {
+              animation: _orbitCtrl,
+              builder: (_, __) {
                 return Transform.rotate(
-                  angle: _rotateCtrl.value * 2 * pi,
-                  child: child,
+                  angle: _orbitCtrl.value * pi * 2,
+                  child: Container(
+                    width: 190,
+                    height: 190,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0x332470D6), width: 1.2),
+                    ),
+                    child: Stack(
+                      children: List.generate(4, (i) {
+                        final angle = (i / 4) * pi * 2;
+                        return Positioned(
+                          left: 92 + cos(angle) * 80,
+                          top: 92 + sin(angle) * 80,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF2F89F5),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
                 );
               },
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.08),
-                    width: 1.5,
-                  ),
-                ),
-                child: Stack(
-                  children: List.generate(6, (i) {
-                    final angle = (i / 6) * 2 * pi;
-                    return Positioned(
-                      left: 95 + 88 * cos(angle),
-                      top: 95 + 88 * sin(angle),
-                      child: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.3),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-              ),
             ),
           ),
-
-          // Second static ring
-          Center(
-            child: Container(
-              width: 160,
-              height: 160,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.06),
-                  width: 1,
-                ),
-              ),
-            ),
-          ),
-
-          // Main content
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Logo
                 Container(
-                  width: 100,
-                  height: 100,
+                  width: 96,
+                  height: 96,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.circular(28),
                     gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF197278), Color(0xFFD98F39)],
+                      colors: [Color(0xFF2D8BFF), Color(0xFF22B8CF)],
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFD98F39).withOpacity(0.5),
-                        blurRadius: 32,
-                        offset: const Offset(0, 12),
-                      ),
-                      BoxShadow(
-                        color: const Color(0xFF0C6171).withOpacity(0.5),
-                        blurRadius: 20,
-                        spreadRadius: -4,
+                        color: const Color(0xFF2D8BFF).withOpacity(0.28),
+                        blurRadius: 24,
+                        offset: const Offset(0, 10),
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.travel_explore_rounded,
-                    size: 50,
-                    color: Colors.white,
-                  ),
-                )
-                    .animate()
-                    .fadeIn(duration: 700.ms)
-                    .scale(
-                        begin: const Offset(0.7, 0.7),
-                        end: const Offset(1, 1),
-                        curve: Curves.elasticOut,
-                        duration: 1000.ms),
-
-                const SizedBox(height: 24),
-
+                  child: const Icon(Icons.travel_explore_rounded, color: Colors.white, size: 48),
+                ).animate().fadeIn(duration: 420.ms).scale(
+                      begin: const Offset(0.8, 0.8),
+                      end: const Offset(1, 1),
+                      curve: Curves.easeOutBack,
+                    ),
+                const SizedBox(height: 18),
                 const Text(
-                  'RIHLA',
+                  'Rihla',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 42,
+                    fontSize: 38,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 8,
+                    letterSpacing: 0.6,
+                    color: Color(0xFF15345D),
                   ),
-                )
-                    .animate()
-                    .fadeIn(delay: 300.ms, duration: 600.ms)
-                    .slideY(begin: 0.3, end: 0),
-
-                const SizedBox(height: 10),
-
-                Text(
-                  'Morocco. Reimagined.',
+                ).animate().fadeIn(delay: 150.ms),
+                const SizedBox(height: 8),
+                const Text(
+                  'Discover • Book • Travel',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 1.5,
+                    color: Color(0xFF4B6790),
+                    fontWeight: FontWeight.w600,
                   ),
-                )
-                    .animate()
-                    .fadeIn(delay: 500.ms, duration: 600.ms),
-
-                const SizedBox(height: 60),
-
-                // Loading dots
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(3, (i) {
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.6),
-                        shape: BoxShape.circle,
-                      ),
-                    )
-                        .animate(onPlay: (c) => c.repeat())
-                        .fadeOut(
-                          delay: Duration(milliseconds: i * 200),
-                          duration: const Duration(milliseconds: 600),
-                        )
-                        .then()
-                        .fadeIn(duration: const Duration(milliseconds: 600));
-                  }),
-                ).animate().fadeIn(delay: 700.ms, duration: 400.ms),
+                ).animate().fadeIn(delay: 250.ms),
+                const SizedBox(height: 44),
+                const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2.2),
+                ).animate().fadeIn(delay: 300.ms),
               ],
             ),
           ),
@@ -243,4 +194,14 @@ class _SplashPageState extends ConsumerState<SplashPage>
       ),
     );
   }
+
+  Widget _blurCircle(Color color, double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    );
+  }
 }
+
+

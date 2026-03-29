@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/models/trip_model.dart';
+import '../../core/ui/safe_network_image.dart';
 import 'transports_service.dart';
 
 final _transportSearchProvider = FutureProvider.autoDispose.family(
@@ -18,7 +19,7 @@ final _transportSearchProvider = FutureProvider.autoDispose.family(
   },
 );
 
-class TransportResultsPage extends ConsumerWidget {
+class TransportResultsPage extends ConsumerStatefulWidget {
   final String fromCity;
   final String toCity;
   final String date;
@@ -33,120 +34,64 @@ class TransportResultsPage extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TransportResultsPage> createState() => _TransportResultsPageState();
+}
+
+class _TransportResultsPageState extends ConsumerState<TransportResultsPage> {
+  double _maxPrice = 1500;
+  double _minRating = 4.0;
+  String _locationFilter = '';
+
+  @override
+  Widget build(BuildContext context) {
     final data = ref.watch(_transportSearchProvider({
-      'fromCity': fromCity,
-      'toCity': toCity,
-      'date': date,
-      if (type != null) 'type': type!,
+      'fromCity': widget.fromCity,
+      'toCity': widget.toCity,
+      'date': widget.date,
+      if (widget.type != null) 'type': widget.type!,
     }));
 
-    final scheme = Theme.of(context).colorScheme;
-
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 150,
-            pinned: true,
-            stretch: true,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFF1565C0), Color(0xFF0D47A1), Color(0xFF283593)],
-                  ),
-                ),
-                child: SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 50, 20, 16),
-                    child: Row(
-                      children: [
-                        _CityPill(city: fromCity, isOrigin: true),
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.arrow_forward_rounded,
-                                  color: Colors.white54, size: 20),
-                              const SizedBox(height: 4),
-                              Text(
-                                _typeIcon(type),
-                                style: const TextStyle(fontSize: 18),
-                              ),
-                              Text(
-                                date,
-                                style: const TextStyle(
-                                    color: Colors.white60, fontSize: 11),
-                              ),
-                            ],
-                          ),
-                        ),
-                        _CityPill(city: toCity, isOrigin: false),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              title: Text('$fromCity → $toCity',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16)),
-            ),
+      appBar: AppBar(
+        title: Text('${widget.fromCity} to ${widget.toCity}'),
+      ),
+      body: Column(
+        children: [
+          _FiltersBar(
+            maxPrice: _maxPrice,
+            minRating: _minRating,
+            locationFilter: _locationFilter,
+            onPriceChanged: (v) => setState(() => _maxPrice = v),
+            onRatingChanged: (v) => setState(() => _minRating = v),
+            onLocationChanged: (v) => setState(() => _locationFilter = v.trim().toLowerCase()),
           ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-            sliver: data.when(
+          Expanded(
+            child: data.when(
               data: (list) {
-                if (list.isEmpty) {
-                  return SliverToBoxAdapter(
-                    child: _EmptyState(
-                      fromCity: fromCity,
-                      toCity: toCity,
-                      type: type,
-                    ),
-                  );
+                final filtered = list.where((trip) {
+                  final price = trip.price ?? 0;
+                  final rating = _ratingFor(trip);
+                  final location = '${trip.fromCity ?? ''} ${trip.toCity ?? ''}'.toLowerCase();
+                  return price <= _maxPrice && rating >= _minRating && (_locationFilter.isEmpty || location.contains(_locationFilter));
+                }).toList();
+
+                if (filtered.isEmpty) {
+                  return const Center(child: Text('No trips match these filters.'));
                 }
-                return SliverList.separated(
-                  itemCount: list.length,
+
+                return ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
+                  itemCount: filtered.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, i) => _TripCard(
-                    trip: list[i],
+                  itemBuilder: (_, i) => _ResultCard(
+                    trip: filtered[i],
                     index: i,
-                    onTap: () =>
-                        GoRouter.of(context).push('/trip/${list[i].id}'),
+                    onTap: () => context.push('/trip/${filtered[i].id}'),
                   ),
                 );
               },
-              loading: () => SliverList.separated(
-                itemCount: 4,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (_, i) => _TripCardSkeleton(index: i),
-              ),
-              error: (e, _) => SliverToBoxAdapter(
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.06),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.red.withOpacity(0.2)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.error_outline_rounded,
-                          color: Colors.red),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(e.toString(),
-                            style: const TextStyle(color: Colors.red)),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text(e.toString())),
             ),
           ),
         ],
@@ -154,51 +99,89 @@ class TransportResultsPage extends ConsumerWidget {
     );
   }
 
-  String _typeIcon(String? t) {
-    return switch ((t ?? '').toUpperCase()) {
-      'BUS' => '🚌',
-      'CAR' => '🚗',
-      'FLIGHT' => '✈️',
-      _ => '🚆',
-    };
+  double _ratingFor(TripModel trip) {
+    if (trip.capacity == null || trip.availableSeats == null || trip.capacity == 0) {
+      return 4.6;
+    }
+    final usage = 1 - (trip.availableSeats! / trip.capacity!);
+    return (4.2 + usage.clamp(0, 0.8)).clamp(4.0, 5.0);
   }
 }
 
-// ─── City Pill ─────────────────────────────────────────────────────────────────
-class _CityPill extends StatelessWidget {
-  final String city;
-  final bool isOrigin;
-  const _CityPill({required this.city, required this.isOrigin});
+class _FiltersBar extends StatelessWidget {
+  final double maxPrice;
+  final double minRating;
+  final String locationFilter;
+  final ValueChanged<double> onPriceChanged;
+  final ValueChanged<double> onRatingChanged;
+  final ValueChanged<String> onLocationChanged;
+
+  const _FiltersBar({
+    required this.maxPrice,
+    required this.minRating,
+    required this.locationFilter,
+    required this.onPriceChanged,
+    required this.onRatingChanged,
+    required this.onLocationChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white24),
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+      color: const Color(0xFFF4F8FF),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            isOrigin
-                ? Icons.flight_takeoff_rounded
-                : Icons.flight_land_rounded,
-            color: Colors.white70,
-            size: 16,
+          Row(
+            children: [
+              Expanded(
+                child: _FilterPill(
+                  icon: Icons.payments_outlined,
+                  label: 'Max ${maxPrice.round()} MAD',
+                  onTap: () async {
+                    final value = await showModalBottomSheet<double>(
+                      context: context,
+                      builder: (_) => _SliderSheet(
+                        title: 'Maximum Price',
+                        min: 100,
+                        max: 2000,
+                        value: maxPrice,
+                      ),
+                    );
+                    if (value != null) onPriceChanged(value);
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _FilterPill(
+                  icon: Icons.star_outline_rounded,
+                  label: 'Rating ${minRating.toStringAsFixed(1)}+',
+                  onTap: () async {
+                    final value = await showModalBottomSheet<double>(
+                      context: context,
+                      builder: (_) => _SliderSheet(
+                        title: 'Minimum Rating',
+                        min: 4.0,
+                        max: 5.0,
+                        step: 0.1,
+                        value: minRating,
+                      ),
+                    );
+                    if (value != null) onRatingChanged(value);
+                  },
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            city,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-              fontSize: 13,
+          const SizedBox(height: 8),
+          TextField(
+            onChanged: onLocationChanged,
+            decoration: InputDecoration(
+              hintText: 'Filter by location',
+              prefixIcon: const Icon(Icons.location_on_outlined),
+              suffixIcon: locationFilter.isNotEmpty ? const Icon(Icons.filter_alt_rounded) : null,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -206,401 +189,216 @@ class _CityPill extends StatelessWidget {
   }
 }
 
-// ─── Trip Card ──────────────────────────────────────────────────────────────────
-class _TripCard extends StatelessWidget {
+class _ResultCard extends StatelessWidget {
   final TripModel trip;
   final int index;
   final VoidCallback onTap;
 
-  const _TripCard(
-      {required this.trip, required this.index, required this.onTap});
-
-  static const _typeColors = {
-    'TRAIN': Color(0xFF1565C0),
-    'BUS': Color(0xFF2E7D32),
-    'CAR': Color(0xFFBF360C),
-    'FLIGHT': Color(0xFF4527A0),
-  };
-
-  static const _typeIcons = {
-    'TRAIN': Icons.train_rounded,
-    'BUS': Icons.directions_bus_rounded,
-    'CAR': Icons.directions_car_rounded,
-    'FLIGHT': Icons.flight_rounded,
-  };
+  const _ResultCard({
+    required this.trip,
+    required this.index,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final t = Theme.of(context).textTheme;
+    final dep = trip.departureAt != null ? DateFormat('HH:mm').format(trip.departureAt!) : '--:--';
+    final arr = trip.arrivalAt != null ? DateFormat('HH:mm').format(trip.arrivalAt!) : '--:--';
+    final price = (trip.price ?? 0).toStringAsFixed(0);
 
-    final color =
-        _typeColors[trip.type?.toUpperCase()] ?? const Color(0xFF1565C0);
-    final icon =
-        _typeIcons[trip.type?.toUpperCase()] ?? Icons.directions_transit_rounded;
-
-    final dep = trip.departureAt != null
-        ? DateFormat('HH:mm').format(trip.departureAt!)
-        : '--:--';
-    final arr = trip.arrivalAt != null
-        ? DateFormat('HH:mm').format(trip.arrivalAt!)
-        : '--:--';
-    final depDate = trip.departureAt != null
-        ? DateFormat('MMM d').format(trip.departureAt!)
-        : (trip.date ?? '');
-
-    Duration? duration;
-    if (trip.departureAt != null && trip.arrivalAt != null) {
-      duration = trip.arrivalAt!.difference(trip.departureAt!);
-    }
-    final durationStr = duration != null
-        ? '${duration.inHours}h ${duration.inMinutes.remainder(60)}m'
-        : null;
-
-    return GestureDetector(
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: scheme.surface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: scheme.outlineVariant.withOpacity(0.4)),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.08),
+              color: Colors.black.withOpacity(0.06),
               blurRadius: 16,
-              offset: const Offset(0, 6),
+              offset: const Offset(0, 8),
             ),
           ],
         ),
         child: Column(
           children: [
-            // ── Header bar ───────────────────────────────────────────
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.07),
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(7),
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.14),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(icon, size: 16, color: color),
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              child: SizedBox(
+                height: 130,
+                width: double.infinity,
+                child: SafeNetworkImage(
+                  imageUrl: trip.imageUrl,
+                  fit: BoxFit.cover,
+                  placeholder: Container(
+                    color: const Color(0xFFE8F1FF),
+                    child: const Icon(Icons.image_outlined, color: Color(0xFF9CB3D3)),
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    trip.type ?? 'Trip',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 12,
-                      color: color,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  if (trip.providerName != null &&
-                      trip.providerName!.isNotEmpty) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: scheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        trip.providerName!,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: scheme.onSurface.withOpacity(0.6),
-                        ),
-                      ),
-                    ),
-                  ],
-                  const Spacer(),
-                  Text(
-                    depDate,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: scheme.onSurface.withOpacity(0.5),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-
-            // ── Route timeline ────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-              child: Row(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Departure
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          dep,
-                          style: t.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            color: scheme.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          trip.fromCity ?? '',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                            color: scheme.onSurface.withOpacity(0.7),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Timeline
-                  Expanded(
-                    child: Column(
-                      children: [
-                        if (durationStr != null)
-                          Text(
-                            durationStr,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: scheme.onSurface.withOpacity(0.45),
-                            ),
-                          ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: color,
-                              ),
-                            ),
-                            Expanded(
-                              child: Container(
-                                height: 2,
-                                color: color.withOpacity(0.3),
-                              ),
-                            ),
-                            Icon(icon, size: 16, color: color),
-                            Expanded(
-                              child: Container(
-                                height: 2,
-                                color: color.withOpacity(0.3),
-                              ),
-                            ),
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border:
-                                    Border.all(color: color, width: 2),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Direct',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: scheme.onSurface.withOpacity(0.35),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Arrival
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          arr,
-                          style: t.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            color: scheme.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          trip.toCity ?? '',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                            color: scheme.onSurface.withOpacity(0.7),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.end,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // ── Footer ────────────────────────────────────────────────
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: scheme.surfaceContainerLowest,
-                borderRadius:
-                    const BorderRadius.vertical(bottom: Radius.circular(24)),
-              ),
-              child: Row(
-                children: [
-                  if (trip.availableSeats != null) ...[
-                    Icon(Icons.event_seat_rounded,
-                        size: 14,
-                        color: scheme.onSurface.withOpacity(0.45)),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${trip.availableSeats} seats left',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: scheme.onSurface.withOpacity(0.5),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                  const Spacer(),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                  Row(
                     children: [
                       Text(
-                        trip.price == null
-                            ? 'Price n/a'
-                            : '${trip.price!.toStringAsFixed(0)} ${trip.currency ?? 'MAD'}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 18,
-                          color: color,
-                        ),
+                        '${trip.fromCity ?? '-'} ? ${trip.toCity ?? '-'}',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                       ),
-                      Text(
-                        'per seat',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: scheme.onSurface.withOpacity(0.4),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0F7FF),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          (trip.type ?? 'Trip').toUpperCase(),
+                          style: const TextStyle(color: Color(0xFF236ED4), fontSize: 11, fontWeight: FontWeight.w700),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(width: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Text(
-                      'Select',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
+                  const SizedBox(height: 6),
+                  Text(
+                    '$dep - $arr',
+                    style: const TextStyle(color: Color(0xFF6A7F9C), fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      const Icon(Icons.star_rounded, color: Color(0xFFF5B400), size: 18),
+                      const SizedBox(width: 4),
+                      Text(
+                        _ratingFor(trip).toStringAsFixed(1),
+                        style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
-                    ),
+                      const Spacer(),
+                      Text(
+                        '$price ${trip.currency ?? 'MAD'}',
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17, color: Color(0xFF1B74E4)),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
           ],
         ),
-      )
-          .animate()
-          .fadeIn(delay: Duration(milliseconds: index * 70), duration: 400.ms)
-          .slideY(begin: 0.12, end: 0),
+      ),
+    ).animate(delay: Duration(milliseconds: 45 * index)).fadeIn().slideY(begin: 0.08, end: 0);
+  }
+
+  double _ratingFor(TripModel trip) {
+    if (trip.capacity == null || trip.availableSeats == null || trip.capacity == 0) {
+      return 4.6;
+    }
+    final usage = 1 - (trip.availableSeats! / trip.capacity!);
+    return (4.2 + usage.clamp(0, 0.8)).clamp(4.0, 5.0);
+  }
+}
+
+class _FilterPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _FilterPill({required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFD9E8FF)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: const Color(0xFF2B73D8)),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-// ─── Skeleton loader ───────────────────────────────────────────────────────────
-class _TripCardSkeleton extends StatelessWidget {
-  final int index;
-  const _TripCardSkeleton({required this.index});
+class _SliderSheet extends StatefulWidget {
+  final String title;
+  final double min;
+  final double max;
+  final double value;
+  final double step;
+
+  const _SliderSheet({
+    required this.title,
+    required this.min,
+    required this.max,
+    required this.value,
+    this.step = 1,
+  });
 
   @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      height: 160,
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(24),
-      ),
-    )
-        .animate(onPlay: (c) => c.repeat())
-        .shimmer(duration: 1200.ms, color: Colors.white38)
-        .fadeIn(delay: Duration(milliseconds: index * 80));
-  }
+  State<_SliderSheet> createState() => _SliderSheetState();
 }
 
-// ─── Empty state ───────────────────────────────────────────────────────────────
-class _EmptyState extends StatelessWidget {
-  final String fromCity;
-  final String toCity;
-  final String? type;
-  const _EmptyState(
-      {required this.fromCity, required this.toCity, this.type});
+class _SliderSheetState extends State<_SliderSheet> {
+  late double _value;
+
+  @override
+  void initState() {
+    super.initState();
+    _value = widget.value;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        children: [
-          const Text('🚫', style: TextStyle(fontSize: 48)),
-          const SizedBox(height: 14),
-          Text(
-            'No trips found',
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'No ${type ?? ''} trips from $fromCity to $toCity on $toCity.\nTry a different date or transport type.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: scheme.onSurface.withOpacity(0.55),
-              fontSize: 13,
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(widget.title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            const SizedBox(height: 12),
+            Slider(
+              min: widget.min,
+              max: widget.max,
+              value: _value,
+              divisions: ((widget.max - widget.min) / widget.step).round(),
+              label: widget.step < 1 ? _value.toStringAsFixed(1) : _value.round().toString(),
+              onChanged: (v) => setState(() => _value = v),
             ),
-          ),
-          const SizedBox(height: 18),
-          OutlinedButton.icon(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.arrow_back_rounded),
-            label: const Text('Go back'),
-          ),
-        ],
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.pop(context, _value),
+                child: const Text('Apply'),
+              ),
+            ),
+          ],
+        ),
       ),
-    ).animate().fadeIn(duration: 500.ms).scale(begin: const Offset(0.9, 0.9));
+    );
   }
 }
+
+
