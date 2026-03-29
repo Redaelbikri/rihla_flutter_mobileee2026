@@ -49,7 +49,14 @@ class ItinerariesService {
       final list = (data is List)
           ? data
           : (data is Map && data['content'] is List ? data['content'] : []);
-      return List<Map<String, dynamic>>.from(list);
+      return List<Map<String, dynamic>>.from(list).map((item) {
+        final map = Map<String, dynamic>.from(item);
+        final payload = map['payload'];
+        if (payload is Map) {
+          map['payload'] = Map<String, dynamic>.from(payload);
+        }
+        return map;
+      }).toList();
     } on DioException catch (e) {
       throw dioToApiError(e);
     }

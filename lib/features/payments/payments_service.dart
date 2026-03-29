@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show Color;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
@@ -67,6 +68,11 @@ class PaymentsService {
     final paymentIntentId = intent['paymentIntentId']?.toString();
 
     try {
+      debugPrint(
+        '[Stripe] initPaymentSheet reservationId=$reservationId amountMad=${amountMad.round()} '
+        'paymentIntentId=$paymentIntentId clientSecretPrefix=${clientSecret.split('_secret_').first}',
+      );
+
       await Stripe.instance.initPaymentSheet(
         paymentSheetParameters: SetupPaymentSheetParameters(
           paymentIntentClientSecret: clientSecret,
@@ -84,25 +90,33 @@ class PaymentsService {
       );
 
       await Stripe.instance.presentPaymentSheet();
+      debugPrint('[Stripe] presentPaymentSheet completed successfully for reservationId=$reservationId');
 
       // Notify backend of payment success.
       // Stripe webhooks can't reach a local IP, so we trigger it manually.
       // stripe.skipVerification=true on the backend skips signature check.
       if (paymentIntentId != null && paymentIntentId.isNotEmpty) {
         try {
+          debugPrint('[Stripe] notifying backend webhook for paymentIntentId=$paymentIntentId');
           await _dio.post('/api/payments/webhook', data: {
             'type': 'payment_intent.succeeded',
             'data': {
               'object': {'id': paymentIntentId}
             },
           });
+          debugPrint('[Stripe] backend webhook acknowledged for paymentIntentId=$paymentIntentId');
         } catch (_) {
+          debugPrint('[Stripe] backend webhook call failed for paymentIntentId=$paymentIntentId');
           // Non-critical: webhook call failed, reservation stays PENDING_PAYMENT
         }
       }
     } on StripeException catch (e) {
       final code = e.error.stripeErrorCode ?? '';
       final msg = e.error.message ?? e.error.localizedMessage;
+      debugPrint(
+        '[Stripe] exception code=${e.error.code} stripeErrorCode=$code '
+        'message=$msg localized=${e.error.localizedMessage}',
+      );
 
       // Detect account mismatch: frontend publishable key account ≠ backend secret key account
       if (code == 'resource_missing' || (msg?.contains('No such payment_intent') == true)) {

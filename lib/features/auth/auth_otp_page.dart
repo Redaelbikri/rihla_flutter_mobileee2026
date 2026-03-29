@@ -115,12 +115,16 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
     try {
       await ref
           .read(authServiceProvider)
-          .resendOtp(email: widget.email);
+          .resendOtp(email: widget.email, flow: widget.flow);
       if (mounted) {
         _startCountdown();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('OTP resent to your email'),
+            content: Text(
+              _isSignup
+                  ? 'Verification code resent to your email'
+                  : 'Login code resent to your email',
+            ),
             backgroundColor: const Color(0xFF0C6171),
             behavior: SnackBarBehavior.floating,
             shape:
